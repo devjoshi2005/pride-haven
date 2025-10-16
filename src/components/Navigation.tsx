@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Heart, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 
 const Navigation = () => {
   const location = useLocation();
@@ -42,9 +43,17 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <Button className="bg-primary hover:bg-primary/90">
-              Get Help Now
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button className="bg-primary hover:bg-primary/90">
+                Get Help Now
+              </Button>
+              <SignedOut>
+                <SignInButton mode="modal" />
+              </SignedOut>
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -77,9 +86,17 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <Button className="w-full bg-primary hover:bg-primary/90">
-              Get Help Now
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button className="flex-1 bg-primary hover:bg-primary/90">
+                Get Help Now
+              </Button>
+              <SignedOut>
+                <SignInButton mode="modal" />
+              </SignedOut>
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
+            </div>
           </div>
         )}
       </div>

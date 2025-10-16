@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Phone, MessageSquare, Heart, BookOpen, Video, Users } from "lucide-react";
 
 const Resources = () => {
@@ -14,15 +15,15 @@ const Resources = () => {
     {
       name: "The Trevor Project",
       description: "Crisis support for LGBTQ+ young people",
-      contact: "1-866-488-7386 or text START to 678678",
-      link: "tel:1-866-488-7386",
+      contact: "Call 1-866-488-7386 or visit for chat/text",
+      link: "https://www.thetrevorproject.org/get-help/",
       icon: Phone,
     },
     {
       name: "Crisis Text Line",
       description: "Text-based crisis support",
-      contact: "Text HOME to 678678",
-      link: "sms:678678",
+      contact: "Text HOME to 741741",
+      link: "https://www.crisistextline.org/",
       icon: MessageSquare,
     },
     {
@@ -39,25 +40,45 @@ const Resources = () => {
       title: "Coming Out Resources",
       description: "Guides and support for coming out to family, friends, and yourself",
       icon: Heart,
-      topics: ["Self-acceptance", "Family conversations", "Safety planning", "Support networks"],
+      links: [
+        { label: "PFLAG: Coming Out", url: "https://pflag.org/resource/coming-out/" },
+        { label: "HRC: Coming Out Guide", url: "https://www.hrc.org/resources/resource-guide-to-coming-out" },
+        { label: "Trevor Project: Coming Out Handbook", url: "https://www.thetrevorproject.org/resources/guide/the-coming-out-handbook/" },
+        { label: "The Gender Unicorn (education)", url: "https://www.transstudent.org/gender/" },
+      ],
     },
     {
       title: "Mental Health Support",
       description: "Resources for managing anxiety, depression, and other mental health challenges",
       icon: BookOpen,
-      topics: ["Coping strategies", "Finding therapists", "Self-care", "Medication info"],
+      links: [
+        { label: "NAMI Help & Support", url: "https://www.nami.org/help" },
+        { label: "APA Psychologist Locator", url: "https://locator.apa.org/" },
+        { label: "MentalHealth.gov", url: "https://www.mentalhealth.gov/" },
+        { label: "HelpGuide: LGBTQ+ Mental Health", url: "https://www.helpguide.org/articles/abuse/lgbtq-issues.htm" },
+      ],
     },
     {
       title: "Educational Content",
       description: "Learn about LGBTQ+ identities, rights, and history",
       icon: Video,
-      topics: ["Gender identity", "Sexual orientation", "LGBTQ+ history", "Advocacy"],
+      links: [
+        { label: "GLSEN: Educator Resources", url: "https://www.glsen.org/resources" },
+        { label: "GLAAD: Media Reference Guide", url: "https://www.glaad.org/reference" },
+        { label: "HRC: LGBTQ+ Definitions", url: "https://www.hrc.org/resources/terminology" },
+        { label: "Planned Parenthood: Sexual Orientation & Gender", url: "https://www.plannedparenthood.org/learn/sexual-orientation-gender" },
+      ],
     },
     {
       title: "Community Building",
       description: "Find local and online LGBTQ+ communities and support groups",
       icon: Users,
-      topics: ["Local groups", "Online communities", "Events", "Peer support"],
+      links: [
+        { label: "PFLAG Chapter Finder", url: "https://pflag.org/find/" },
+        { label: "TrevorSpace (13–24)", url: "https://www.trevorspace.org/" },
+        { label: "Q Chat Space (13–19)", url: "https://www.qchatspace.org/" },
+        { label: "Reddit: r/lgbt", url: "https://www.reddit.com/r/lgbt/" },
+      ],
     },
   ];
 
@@ -98,11 +119,13 @@ const Resources = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Button 
-                    className="w-full bg-destructive hover:bg-destructive/90" 
+                  <Button
+                    className="w-full bg-destructive hover:bg-destructive/90"
                     asChild
                   >
-                    <a href={resource.link}>{resource.contact}</a>
+                    <a href={resource.link} target="_blank" rel="noopener noreferrer" aria-label={`${resource.name} - ${resource.contact}`}>
+                      {resource.contact}
+                    </a>
                   </Button>
                 </CardContent>
               </Card>
@@ -134,16 +157,15 @@ const Resources = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-muted-foreground mb-2">Topics covered:</p>
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-muted-foreground">Recommended links:</p>
                     <div className="flex flex-wrap gap-2">
-                      {resource.topics.map((topic, idx) => (
-                        <span 
-                          key={idx}
-                          className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
-                        >
-                          {topic}
-                        </span>
+                      {resource.links.map((link, idx) => (
+                        <Button key={idx} variant="outline" asChild>
+                          <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`${resource.title} - ${link.label}`}>
+                            {link.label}
+                          </a>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -161,8 +183,8 @@ const Resources = () => {
               <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
                 Our anonymous Q&A community is here to help. Ask questions and get support from peers who understand.
               </p>
-              <Button size="lg" className="bg-primary hover:bg-primary/90">
-                Visit Q&A Community
+              <Button size="lg" className="bg-primary hover:bg-primary/90" asChild>
+                <Link to="/qa" aria-label="Visit Q&A Community">Visit Q&A Community</Link>
               </Button>
             </CardContent>
           </Card>
