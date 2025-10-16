@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MessageCircle, ThumbsUp, Search, Shield } from "lucide-react";
-import { supabase, Question, NewQuestion } from "@/lib/supabase";
+import { supabase, Question, NewQuestion, Reply, NewReply } from "@/lib/supabase";
 
 const QA = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,6 +16,11 @@ const QA = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const [likedQuestions, setLikedQuestions] = useState<Set<string>>(new Set());
+  const [liking, setLiking] = useState<Set<string>>(new Set());
 
   // Fetch questions from Supabase
   const fetchQuestions = async () => {
@@ -112,6 +118,133 @@ const QA = () => {
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
     return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
+
+  // Helper function to generate anonymous IP hash
+  const generateIPHash = () => {
+    // In a real app, you'd get the user's IP and hash it
+    // For demo purposes, we'll use a simple localStorage-based identifier
+    let userHash = localStorage.getItem('pride-haven-anon-hash');
+    if (!userHash) {
+      userHash = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('pride-haven-anon-hash', userHash);
+    }
+    return userHash;
+  };
+
+  // Handle liking a question
+  const handleLikeQuestion = async (questionId: string) => {
+    if (likedQuestions.has(questionId)) {
+      alert("You've already liked this question!");
+      return;
+    }
+
+    try {
+      setLiking(prev => new Set(prev).add(questionId));
+      
+      const userHash = generateIPHash();
+      
+      // Check if user already liked this question
+      const { data: existingLike } = await supabase
+        .from('question_upvotes')
+        .select('id')
+        .eq('question_id', questionId)
+        .eq('user_ip_hash', userHash)
+        .single();
+
+      if (existingLike) {
+        alert("You've already liked this question!");
+        setLiking(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(questionId);
+          return newSet;
+        });
+        return;
+      }
+
+      // Add the like
+      const { error } = await supabase
+        .from('question_upvotes')
+        .insert([{
+          question_id: questionId,
+          user_ip_hash: userHash
+        }]);
+
+      if (error) {
+        console.error('Error liking question:', error);
+        alert('Error liking question. Please try again.');
+        return;
+      }
+
+      // Update local state
+      setLikedQuestions(prev => new Set(prev).add(questionId));
+      
+      // Update the question's upvote count
+      const question = questions.find(q => q.id === questionId);
+      if (question) {
+        setQuestions(prev => prev.map(q => 
+          q.id === questionId 
+            ? { ...q, upvotes_count: q.upvotes_count + 1 }
+            : q
+        ));
+      }
+
+    } catch (error) {
+      console.error('Error liking question:', error);
+      alert('Error liking question. Please try again.');
+    } finally {
+      setLiking(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(questionId);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle posting a reply
+  const handlePostReply = async () => {
+    if (!selectedQuestion || !replyContent.trim()) {
+      alert("Please enter a reply.");
+      return;
+    }
+
+    try {
+      setSubmittingReply(true);
+      
+      const newReply: NewReply = {
+        question_id: selectedQuestion.id,
+        content: replyContent.trim()
+      };
+
+      const { error } = await supabase
+        .from('replies')
+        .insert([newReply]);
+
+      if (error) {
+        console.error('Error posting reply:', error);
+        alert('Error posting reply. Please try again.');
+        return;
+      }
+
+      // Update the question's reply count
+      setQuestions(prev => prev.map(q => 
+        q.id === selectedQuestion.id 
+          ? { ...q, replies_count: q.replies_count + 1 }
+          : q
+      ));
+
+      // Reset form
+      setReplyContent("");
+      setSelectedQuestion(null);
+      
+      alert("Your reply has been posted!");
+
+    } catch (error) {
+      console.error('Error posting reply:', error);
+      alert('Error posting reply. Please try again.');
+    } finally {
+      setSubmittingReply(false);
+    }
   };
 
   const categories = ["All", "Coming Out", "Support", "Trans Issues", "Community", "Mental Health"];
@@ -228,16 +361,62 @@ const QA = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <MessageCircle className="w-4 h-4" />
-                      <span>{q.replies_count} replies</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ThumbsUp className="w-4 h-4" />
+                  <div className="flex items-center gap-6 text-sm">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                          onClick={() => setSelectedQuestion(q)}
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span>{q.replies_count} replies</span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Reply to Question</DialogTitle>
+                          <DialogDescription>
+                            {q.title}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <Textarea
+                            placeholder="Share your thoughts, experiences, or advice..."
+                            value={replyContent}
+                            onChange={(e) => setReplyContent(e.target.value)}
+                            className="min-h-[120px]"
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button 
+                            onClick={handlePostReply}
+                            disabled={submittingReply}
+                          >
+                            {submittingReply ? "Posting..." : "Post Reply"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={`flex items-center gap-2 ${
+                        likedQuestions.has(q.id) 
+                          ? "text-primary hover:text-primary/80" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={() => handleLikeQuestion(q.id)}
+                      disabled={liking.has(q.id)}
+                    >
+                      <ThumbsUp className={`w-4 h-4 ${likedQuestions.has(q.id) ? "fill-current" : ""}`} />
                       <span>{q.upvotes_count} helpful</span>
-                    </div>
-                    <span className="ml-auto">{getTimeAgo(q.created_at)}</span>
+                      {liking.has(q.id) && <span className="text-xs">...</span>}
+                    </Button>
+                    
+                    <span className="ml-auto text-muted-foreground">{getTimeAgo(q.created_at)}</span>
                   </div>
                 </CardContent>
               </Card>

@@ -26,3 +26,17 @@ export interface NewQuestion {
   description: string
   category: string
 }
+
+export interface Reply {
+  id: string
+  question_id: string
+  content: string
+  upvotes_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface NewReply {
+  question_id: string
+  content: string
+}
