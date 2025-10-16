@@ -93,6 +93,45 @@ CREATE TRIGGER update_questions_updated_at BEFORE UPDATE ON questions
 CREATE TRIGGER update_replies_updated_at BEFORE UPDATE ON replies
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Create function to update question upvote count
+CREATE OR REPLACE FUNCTION update_question_upvote_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE questions SET upvotes_count = upvotes_count + 1 WHERE id = NEW.question_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE questions SET upvotes_count = upvotes_count - 1 WHERE id = OLD.question_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ language 'plpgsql';
+
+-- Create function to update question reply count
+CREATE OR REPLACE FUNCTION update_question_reply_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE questions SET replies_count = replies_count + 1 WHERE id = NEW.question_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE questions SET replies_count = replies_count - 1 WHERE id = OLD.question_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers to automatically update counts
+CREATE TRIGGER update_question_upvote_count_trigger 
+    AFTER INSERT OR DELETE ON question_upvotes
+    FOR EACH ROW EXECUTE FUNCTION update_question_upvote_count();
+
+CREATE TRIGGER update_question_reply_count_trigger 
+    AFTER INSERT OR DELETE ON replies
+    FOR EACH ROW EXECUTE FUNCTION update_question_reply_count();
+
 -- Insert some sample data (optional)
 INSERT INTO questions (title, description, category) VALUES
 ('How do I come out to my parents?', 'I''m 16 and want to come out to my parents but I''m scared they won''t accept me. How should I approach this conversation?', 'Coming Out'),
